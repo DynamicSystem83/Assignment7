@@ -273,7 +273,7 @@ public class Controller
 					if (r.getStudentIds().size() < 15)
 					{
 						r.getStudentIds().add(studentId);
-						return ResponseEntity.ok(r.getStudentIds());
+						return ResponseEntity.ok(createStudentList(r.getStudentIds()));
 					}
 					return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Max number of students registered for course (" + number + ")");
 				}
@@ -286,7 +286,7 @@ public class Controller
 				Registrar r = new Registrar(number);
 				r.getStudentIds().add(studentId);
 				registrars.add(r);
-				return ResponseEntity.ok(r.getStudentIds());
+				return ResponseEntity.ok(createStudentList(r.getStudentIds()));
 			}
 		}
 		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Did not add student (" + studentId + ") to course (" + number + ") because the course was not found");
@@ -305,7 +305,7 @@ public class Controller
 				if (index != -1)
 				{
 					r.getStudentIds().remove(index);
-					return ResponseEntity.ok(r.getStudentIds());
+					return ResponseEntity.ok(createStudentList(r.getStudentIds()));
 				}
 				return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + studentId + ") not registered for course (" + number + ")");
 			}
