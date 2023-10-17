@@ -65,7 +65,7 @@ public class Controller
 
 
 	@PostMapping(value = "/students")
-    public ResponseEntity addStudent(@RequestParam(value="firstName") String firstName,
+    public ResponseEntity addStudent(@RequestParam(value="firstName", required=false) String firstName,
 									 @RequestParam(value="lastName", required=true) String lastName,
 									 @RequestParam(value="dateOfBirth", required=true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateOfBirth,
 									 @RequestParam(value="email", required=true) @Email String email)
@@ -86,7 +86,7 @@ public class Controller
 				return ResponseEntity.ok(s);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student (id=" + id + ") not found");
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student (" + id + ") not found");
     }
 
 	@GetMapping(value = "/students")
@@ -98,10 +98,10 @@ public class Controller
 
 	@PutMapping(value = "/students/{id}")
     public ResponseEntity updateStudent(@PathVariable int id,
-								  @RequestParam(value="firstName") String firstName,
-								  @RequestParam(value="lastName") @NotBlank String lastName,
-								  @RequestParam(value="dateOfBirth") @NotBlank String dateOfBirth,
-								  @RequestParam(value="email") @NotBlank String email)
+								  @RequestParam(value="firstName", required=false) String firstName,
+								  @RequestParam(value="lastName", required=true) String lastName,
+								  @RequestParam(value="dateOfBirth", required=true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateOfBirth,
+								  @RequestParam(value="email", required=true) @Email String email)
     {   
         System.out.println("Update student using updateStudent");
 		for (Student s : students)
@@ -110,12 +110,12 @@ public class Controller
 			{
 				s.setFirstName(firstName);
 				s.setLastName(lastName);
-				s.setDateOfBirth(dateOfBirth);
+				s.setDateOfBirth(dateOfBirth.toString());
 				s.setEmail(email);
 				return ResponseEntity.ok(students);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (id=" + id + ") not updated because it was not found");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + id + ") not updated because it was not found");
     }
 
 	@DeleteMapping(value = "/students/{id}")
@@ -126,18 +126,25 @@ public class Controller
 		{
 			if (s.getStudentId() == id)
 			{
+				for (Registrar r : registrars)
+				{
+					if (r.getStudentIds().contains(id))
+					{
+						return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + id + ") not deleted because it is registered to a course (" + r.getCourseNumber() + ")");
+					}
+				}
 				students.remove(s);
 				return ResponseEntity.ok(students);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (id=" + id + ") not deleted because it was not found");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + id + ") not deleted because it was not found");
     }
 
 
 
 	@PostMapping(value = "/courses")
-    public ResponseEntity addCourse(@RequestParam(value="courseNumber") @NotBlank String courseNumber,
-									 @RequestParam(value="courseTitle") @NotBlank String courseTitle)
+    public ResponseEntity addCourse(@RequestParam(value="courseNumber", required=true) String courseNumber,
+									 @RequestParam(value="courseTitle", required=true) String courseTitle)
     {
         System.out.println("Create new course using POST (addCourse)");
         courses.add(new Course(courseNumber, courseTitle));
@@ -155,7 +162,7 @@ public class Controller
 				return ResponseEntity.ok(c);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course (number=" + number + ") not found");
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course (" + number + ") not found");
     }
 
 	@GetMapping(value = "/courses")
@@ -167,7 +174,7 @@ public class Controller
 
 	@PutMapping(value = "/courses/{number}")
     public ResponseEntity updateCourse(@PathVariable String number,
-									   @RequestParam(value="courseTitle") @NotBlank String courseTitle)
+									   @RequestParam(value="courseTitle", required=true) String courseTitle)
     {   
         System.out.println("Update course using updateCourse");
 		for (Course c : courses)
@@ -178,7 +185,7 @@ public class Controller
 				return ResponseEntity.ok(courses);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (number=" + number + ") not updated because it was not found");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (" + number + ") not updated because it was not found");
     }
 
 	@DeleteMapping(value = "/courses/{number}")
@@ -189,11 +196,18 @@ public class Controller
 		{
 			if (c.getCourseNumber().equals(number))
 			{
+				for (Registrar r : registrars)
+				{
+					if (r.getCourseNumber().equals(number) && !r.getStudentIds().isEmpty())
+					{
+						return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (" + number + ") not deleted because it has students registered");
+					}
+				}
 				courses.remove(c);
 				return ResponseEntity.ok(courses);
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (number=" + number + ") not deleted because it was not found");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (" + number + ") not deleted because it was not found");
     }
 
 
@@ -213,7 +227,7 @@ public class Controller
 		{
 			if (r.getCourseNumber().equals(number))
 			{
-				return ResponseEntity.ok(r.getStudentIds());
+				return ResponseEntity.ok(createStudentList(r.getStudentIds()));
 			}
 		}
 		for (Course c : courses)
@@ -222,15 +236,28 @@ public class Controller
 			{
 				Registrar r = new Registrar(number);
 				registrars.add(r);
-				return ResponseEntity.ok(r.getStudentIds());
+				return ResponseEntity.ok(createStudentList(r.getStudentIds()));
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course (number=" + number + ") was not found");
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course (" + number + ") was not found");
     }
+	
+	private List<Student> createStudentList(List<Integer> studentList)
+	{
+		List<Student> outList = new ArrayList<Student>();
+		for (Student s :students)
+		{
+			if (studentList.contains(s.getStudentId()))
+			{
+				outList.add(s);
+			}
+		}
+		return outList;
+	}
 
 	@PutMapping(value = "/registrars/{number}")
     public ResponseEntity addStudentToCourse(@PathVariable String number,
-									   @RequestParam(value="studentId") int studentId)
+									   @RequestParam(value="studentId", required=true) int studentId)
     {
         System.out.println("Add student to a course with number using addStudentToCourse");
 		for (Registrar r : registrars)
@@ -239,7 +266,7 @@ public class Controller
 			{
 				if (r.getStudentIds().contains(studentId))
 				{
-					return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (studentId=" + studentId + ") already registered for course (number=" + number + ")");
+					return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + studentId + ") already registered for course (" + number + ")");
 				}
 				else
 				{
@@ -248,7 +275,7 @@ public class Controller
 						r.getStudentIds().add(studentId);
 						return ResponseEntity.ok(r.getStudentIds());
 					}
-					return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Max number of students registered for course (number=" + number + ")");
+					return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Max number of students registered for course (" + number + ")");
 				}
 			}
 		}
@@ -262,12 +289,12 @@ public class Controller
 				return ResponseEntity.ok(r.getStudentIds());
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Did not add student (studentId=" + studentId + ") to course (number=" + number + ") because the course was not found");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Did not add student (" + studentId + ") to course (" + number + ") because the course was not found");
     }
 
 	@DeleteMapping(value = "/registrars/{number}")
     public ResponseEntity removeStudentFromCourse(@PathVariable String number,
-									   @RequestParam(value="studentId") int studentId)
+									   @RequestParam(value="studentId", required=true) int studentId)
     {
         System.out.println("Remove a student from a course with number using removeStudentFromCourse");
 		for (Registrar r : registrars)
@@ -280,9 +307,9 @@ public class Controller
 					r.getStudentIds().remove(index);
 					return ResponseEntity.ok(r.getStudentIds());
 				}
-				return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (studentId=" + studentId + ") not registered for course (number=" + number + ")");
+				return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Student (" + studentId + ") not registered for course (" + number + ")");
 			}
 		}
-		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (number=" + number + ") does not have a registrar record");
+		return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Course (" + number + ") does not have a registrar record");
     }
 }
