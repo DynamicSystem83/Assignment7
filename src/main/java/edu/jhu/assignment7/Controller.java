@@ -23,29 +23,23 @@ import org.hibernate.validator.constraints.Email;
 @Validated
 public class Controller
 {
-	static private List<Student> students = new ArrayList<Student>();
-	static private final AtomicInteger studentIdCounter = new AtomicInteger();
-	static private List<Course> courses = new ArrayList<Course>();
-	static private List<Registrar> registrars = new ArrayList<Registrar>();
-	static private boolean initialized = false;
+	private List<Student> students = new ArrayList<Student>();
+	private final AtomicInteger studentIdCounter = new AtomicInteger();
+	private List<Course> courses = new ArrayList<Course>();
+	private List<Registrar> registrars = new ArrayList<Registrar>();
     
 	public Controller()
 	{
-		if (!initialized)
-		{
-			students.add(new Student(studentIdCounter.incrementAndGet(), "John", "Doe", "2000-12-31", "jDoe@gmail.com"));
-			students.add(new Student(studentIdCounter.incrementAndGet(), "Jane", "Smith", "2000-2-28", "jSmith@gmail.com"));
-			students.add(new Student(studentIdCounter.incrementAndGet(), "Brian", "Anderson", "2000-01-01", "bAnderson@gmail.com"));
+		students.add(new Student(studentIdCounter.incrementAndGet(), "John", "Doe", "2000-12-31", "jDoe@gmail.com"));
+		students.add(new Student(studentIdCounter.incrementAndGet(), "Jane", "Smith", "2000-2-28", "jSmith@gmail.com"));
+		students.add(new Student(studentIdCounter.incrementAndGet(), "Brian", "Anderson", "2000-01-01", "bAnderson@gmail.com"));
 
-			courses.add(new Course("605.789", "Service API Design and Development"));
-			courses.add(new Course("605.782", "Web Application Development with Java"));
-			
-			registrars.add(new Registrar("605.789"));
-			registrars.get(0).getStudentIds().add(1);
-			registrars.get(0).getStudentIds().add(3);
-			
-			initialized = true;
-		}
+		courses.add(new Course("605.789", "Service API Design and Development"));
+		courses.add(new Course("605.782", "Web Application Development with Java"));
+		
+		registrars.add(new Registrar("605.789"));
+		registrars.get(0).getStudentIds().add(1);
+		registrars.get(0).getStudentIds().add(3);
 	}
 
 	@ExceptionHandler(ConstraintViolationException.class)
