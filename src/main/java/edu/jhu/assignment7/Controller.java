@@ -260,6 +260,18 @@ public class Controller
 									   @RequestParam(value="studentId", required=true) int studentId)
     {
         System.out.println("Add student to a course with number using addStudentToCourse");
+		boolean found = false;
+		for (Student s : students)
+		{
+			if (s.getStudentId() == studentId)
+			{
+				found = true;
+			}
+		}
+		if (!found)
+		{
+			return ResponseEntity.status(HttpStatus.NOT_MODIFIED).body("Did not add student (" + studentId + ") to course (" + number + ") because the student was not found");
+		}
 		for (Registrar r : registrars)
 		{
 			if (r.getCourseNumber().equals(number))
